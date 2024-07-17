@@ -8,8 +8,8 @@ import (
 
 func TestLog(t *testing.T) {
 	logger := NewLogger()
-	logger.SetAppName("yiEr")
+	logger.SetLogName("yiEr")
 	logger.SetLevel(zapcore.InfoLevel)
-	logger.SetOutputPath(fmt.Sprintf("./%s.log", logger.appName))
+	logger.SetOutputPath(fmt.Sprintf("./%s.log", logger.logName))
 	logger.Infof("hello,debug,%s", "邱一二")
 }
