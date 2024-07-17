@@ -13,7 +13,7 @@ type Uploader struct {
 }
 
 type IUpload interface {
-	Upload(ctx context.Context, file *multipart.FileHeader) (path string, err error)
+	Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (path string, err error)
 	//SetAccessKey(AccessKeyID, AccessKeySecret string)
 	//SetSessionToken(SessionToken string)
 }
@@ -27,19 +27,17 @@ func NewFileUploader() *Uploader {
 	}
 }
 
-func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader) (path string, err error) {
-	path, err = u.uploader.Upload(ctx, file)
+func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (path string, err error) {
+	path, err = u.uploader.Upload(ctx, file, randomName)
 	if err != nil {
 		u.logger.Errorf("upload err: %v", err)
 	}
 
-	u.logger.Infof("upload success")
 	return
 }
 
 func (u *Uploader) RegisterUploader(uploader IUpload) *Uploader {
 	u.uploader = uploader
-	u.logger.Infof("register uploader: %v", uploader)
 	return u
 }
 
