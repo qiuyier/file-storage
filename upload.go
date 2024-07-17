@@ -2,42 +2,58 @@ package file_storage
 
 import (
 	"context"
+	"github.com/qiuyier/file-storage/pkg/log"
+	"go.uber.org/zap/zapcore"
 	"mime/multipart"
-	"sync"
 )
 
-var (
-	mutex               sync.RWMutex
-	fileUploaderFactory map[DriverType]IUpload
-)
+type Uploader struct {
+	uploader IUpload
+	logger   *log.Logger
+}
 
 type IUpload interface {
 	Upload(ctx context.Context, file *multipart.FileHeader) (path string, err error)
+	//SetAccessKey(AccessKeyID, AccessKeySecret string)
+	//SetSessionToken(SessionToken string)
 }
 
-func GetFileUploaderFactory(uploaderType DriverType) (IUpload, error) {
-	if uploader, ok := fileUploaderFactory[uploaderType]; ok {
-		return uploader, nil
-	} else {
-		uploader, err := newFileUploaderFactory(uploaderType)
-		if err != nil {
-			return nil, err
-		}
-		return uploader, nil
+func NewFileUploader() *Uploader {
+	// 注册日志
+	logger := log.NewLogger()
+
+	return &Uploader{
+		logger: logger,
 	}
 }
 
-func newFileUploaderFactory(uploaderType DriverType) (IUpload, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	var uploader IUpload
-	if strategy, ok := strategies[uploaderType]; ok {
-		uploader = strategy()
-		fileUploaderFactory[uploaderType] = uploader
-
-		return uploader, nil
+func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader) (path string, err error) {
+	path, err = u.uploader.Upload(ctx, file)
+	if err != nil {
+		u.logger.Errorf("upload err: %v", err)
 	}
 
-	return nil, NilFileUploader
+	u.logger.Infof("upload success")
+	return
+}
+
+func (u *Uploader) RegisterUploader(uploader IUpload) *Uploader {
+	u.uploader = uploader
+	u.logger.Infof("register uploader: %v", uploader)
+	return u
+}
+
+func (u *Uploader) SetLogName(appName string) *Uploader {
+	u.logger.SetLogName(appName)
+	return u
+}
+
+func (u *Uploader) SetLevel(level zapcore.Level) *Uploader {
+	u.logger.SetLevel(level)
+	return u
+}
+
+func (u *Uploader) SetOutputPath(path string) *Uploader {
+	u.logger.SetOutputPath(path)
+	return u
 }
