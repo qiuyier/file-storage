@@ -46,7 +46,7 @@ func (l *Logger) initLogger() {
 	config := zap.Config{
 		Level:             zap.NewAtomicLevelAt(l.level),
 		Development:       false,
-		DisableCaller:     false,
+		DisableCaller:     true,
 		DisableStacktrace: false,
 		Sampling:          nil,
 		Encoding:          "json",
