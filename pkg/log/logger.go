@@ -18,7 +18,7 @@ type ILogger interface {
 }
 
 type Logger struct {
-	appName    string
+	logName    string
 	logger     *zap.SugaredLogger
 	level      zapcore.Level
 	once       sync.Once
@@ -26,7 +26,7 @@ type Logger struct {
 }
 
 func NewLogger() *Logger {
-	return &Logger{appName: "file-storage", level: zapcore.InfoLevel}
+	return &Logger{logName: "file-storage", level: zapcore.InfoLevel}
 }
 
 func (l *Logger) initLogger() {
@@ -54,7 +54,7 @@ func (l *Logger) initLogger() {
 		OutputPaths:       outputPath,
 		ErrorOutputPaths:  errOutputPath,
 		InitialFields: map[string]interface{}{
-			"app": l.appName,
+			"app": l.logName,
 		},
 	}
 
@@ -87,8 +87,8 @@ func (l *Logger) log(level zapcore.Level, msg string, fields ...any) {
 	}
 }
 
-func (l *Logger) SetAppName(name string) {
-	l.appName = name
+func (l *Logger) SetLogName(name string) {
+	l.logName = name
 }
 
 func (l *Logger) SetLevel(level zapcore.Level) {
