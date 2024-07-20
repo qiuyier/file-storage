@@ -1,7 +1,10 @@
 package util
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -43,4 +46,39 @@ func TrimRight(str string, characterMask ...string) string {
 		trimChars += characterMask[0]
 	}
 	return strings.TrimRight(str, trimChars)
+}
+
+func FileSize(data int64) string {
+	var factor float64 = 1024
+	res := float64(data)
+	for _, unit := range []string{"", "K", "M", "G", "T", "P"} {
+		if res < factor {
+			return fmt.Sprintf("%.2f%sB", res, unit)
+		}
+		res /= factor
+	}
+	return fmt.Sprintf("%.2f%sB", res, "P")
+}
+
+func Ext(path string) string {
+	ext := filepath.Ext(path)
+	if p := strings.IndexByte(ext, '?'); p != -1 {
+		ext = ext[0:p]
+	}
+	return ext
+}
+
+func Join(paths ...string) string {
+	var (
+		s         string
+		Separator = string(os.PathSeparator)
+	)
+	for _, path := range paths {
+		if s != "" {
+			s += Separator
+		}
+		s += TrimRight(path, Separator)
+	}
+
+	return s
 }
