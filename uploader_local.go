@@ -32,7 +32,7 @@ func NewUploaderLocal(config UploaderLocalConfig) (uploader *UploaderLocal, err 
 	return
 }
 
-func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path string, err error) {
+func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path, fileUrl string, err error) {
 	nowDate := time.Now().Format(time.DateOnly)
 
 	// 文件保存路径
@@ -43,18 +43,18 @@ func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, 
 		// 不存在则创建文件夹
 		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
 			err = errors.New("create dir " + dirPath + ", err: " + err.Error())
-			return "", err
+			return "", "", err
 		}
 	} else if !isDir(dirPath) {
 		// 路径存在但不为文件夹时
-		return "", NotDirErr
+		return "", "", NotDirErr
 	}
 
 	f, err := file.Open()
 	defer f.Close()
 
 	if err != nil {
-		return "", errors.New("open file " + file.Filename + ", err: " + err.Error())
+		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
 	}
 
 	name := filepath.Base(file.Filename)
@@ -63,22 +63,26 @@ func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, 
 	if randomly {
 		random := util.RandomlyName(6)
 		name = strings.ToLower(strconv.FormatInt(time.Now().UnixNano(), 36) + random)
-		name = fmt.Sprintf("%s%s", name, ext(file.Filename))
+		name = fmt.Sprintf("%s%s", name, util.Ext(file.Filename))
 	}
 
-	filePath := join(dirPath, name)
+	filePath := util.Join(dirPath, name)
 	newFile, err := create(filePath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer newFile.Close()
 
 	if _, err = io.Copy(newFile, f); err != nil {
 		err = errors.New("copy file " + filePath + "err: " + err.Error())
-		return "", err
+		return "", "", err
 	}
 
-	return "", nil
+	return filePath, util.Join(u.domain, filePath), nil
+}
+
+func (u *UploaderLocal) GetUploaderType() string {
+	return Local
 }
 
 // 代码源于 gf 框架
@@ -96,29 +100,6 @@ func isDir(path string) bool {
 	}
 
 	return stat.IsDir()
-}
-
-func ext(path string) string {
-	ext := filepath.Ext(path)
-	if p := strings.IndexByte(ext, '?'); p != -1 {
-		ext = ext[0:p]
-	}
-	return ext
-}
-
-func join(paths ...string) string {
-	var (
-		s         string
-		Separator = string(os.PathSeparator)
-	)
-	for _, path := range paths {
-		if s != "" {
-			s += Separator
-		}
-		s += util.TrimRight(path, Separator)
-	}
-
-	return s
 }
 
 func mkdir(path string) (err error) {

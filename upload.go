@@ -3,6 +3,7 @@ package file_storage
 import (
 	"context"
 	"github.com/qiuyier/file-storage/pkg/log"
+	"github.com/qiuyier/file-storage/pkg/util"
 	"go.uber.org/zap/zapcore"
 	"mime/multipart"
 )
@@ -12,10 +13,18 @@ type Uploader struct {
 	logger   *log.Logger
 }
 
+type UploadResult struct {
+	Driver   string
+	FileName string
+	Path     string
+	Size     string
+	FileUrl  string
+	Ext      string
+}
+
 type IUpload interface {
-	Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (path string, err error)
-	//SetAccessKey(AccessKeyID, AccessKeySecret string)
-	//SetSessionToken(SessionToken string)
+	Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (path, fileUrl string, err error)
+	GetUploaderType() string
 }
 
 func NewFileUploader() *Uploader {
@@ -27,10 +36,19 @@ func NewFileUploader() *Uploader {
 	}
 }
 
-func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (path string, err error) {
-	path, err = u.uploader.Upload(ctx, file, randomName)
+func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (res UploadResult, err error) {
+	path, fileUrl, err := u.uploader.Upload(ctx, file, randomName)
 	if err != nil {
 		u.logger.Errorf("upload err: %v", err)
+	}
+
+	res = UploadResult{
+		Driver:   u.uploader.GetUploaderType(),
+		FileName: file.Filename,
+		Path:     path,
+		Size:     util.FileSize(file.Size),
+		FileUrl:  fileUrl,
+		Ext:      util.Ext(file.Filename),
 	}
 
 	return
