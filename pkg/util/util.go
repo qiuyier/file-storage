@@ -3,8 +3,10 @@ package util
 import (
 	"fmt"
 	"math/rand"
+	"mime"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -81,4 +83,24 @@ func Join(paths ...string) string {
 	}
 
 	return s
+}
+
+func GenName(fileName string, randomly bool) string {
+	name := filepath.Base(fileName)
+
+	// 如果设置随机名，则重新命名
+	if randomly {
+		random := RandomlyName(6)
+		name = strings.ToLower(strconv.FormatInt(time.Now().UnixNano(), 36) + random)
+		name = fmt.Sprintf("%s%s", name, Ext(fileName))
+	}
+	return name
+}
+
+func GetContentType(ext string) string {
+	if contentType := mime.TypeByExtension(ext); contentType != "" {
+		return contentType
+	} else {
+		return "application/octet-stream"
+	}
 }
