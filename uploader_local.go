@@ -9,8 +9,6 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -57,14 +55,7 @@ func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, 
 		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
 	}
 
-	name := filepath.Base(file.Filename)
-
-	// 如果设置随机名，则重新命名
-	if randomly {
-		random := util.RandomlyName(6)
-		name = strings.ToLower(strconv.FormatInt(time.Now().UnixNano(), 36) + random)
-		name = fmt.Sprintf("%s%s", name, util.Ext(file.Filename))
-	}
+	name := util.GenName(file.Filename, randomly)
 
 	filePath := util.Join(dirPath, name)
 	newFile, err := create(filePath)

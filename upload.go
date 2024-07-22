@@ -23,7 +23,7 @@ type UploadResult struct {
 }
 
 type IUpload interface {
-	Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (path, fileUrl string, err error)
+	Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path, fileUrl string, err error)
 	GetUploaderType() string
 }
 
