@@ -5,4 +5,5 @@ const (
 	Minio   = "Minio"
 	AliYun  = "OSS"
 	Tencent = "COS"
+	QiNiu   = "QiNiu"
 )
