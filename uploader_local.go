@@ -48,8 +48,8 @@ func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, 
 		return "", "", NotDirErr
 	}
 
-	f, err := file.Open()
-	defer f.Close()
+	fd, err := file.Open()
+	defer fd.Close()
 
 	if err != nil {
 		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
@@ -64,7 +64,7 @@ func (u *UploaderLocal) Upload(ctx context.Context, file *multipart.FileHeader, 
 	}
 	defer newFile.Close()
 
-	if _, err = io.Copy(newFile, f); err != nil {
+	if _, err = io.Copy(newFile, fd); err != nil {
 		err = errors.New("copy file " + filePath + "err: " + err.Error())
 		return "", "", err
 	}

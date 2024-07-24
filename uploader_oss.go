@@ -54,14 +54,14 @@ func (u *UploaderOss) Upload(ctx context.Context, file *multipart.FileHeader, ra
 		return "", "", err
 	}
 
-	f, err := file.Open()
-	defer f.Close()
+	fd, err := file.Open()
+	defer fd.Close()
 
 	if err != nil {
 		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
 	}
 
-	err = u.bucket.PutObject(path, f)
+	err = u.bucket.PutObject(path, fd)
 	if err != nil {
 		return "", "", err
 	}

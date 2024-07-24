@@ -62,8 +62,8 @@ func (u *UploaderQiNiu) Upload(ctx context.Context, file *multipart.FileHeader, 
 	nowDate := time.Now().Format(time.DateOnly)
 	path = util.Join(u.path, nowDate, name)
 
-	f, err := file.Open()
-	defer f.Close()
+	fd, err := file.Open()
+	defer fd.Close()
 
 	if err != nil {
 		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
@@ -71,7 +71,7 @@ func (u *UploaderQiNiu) Upload(ctx context.Context, file *multipart.FileHeader, 
 
 	upToken := u.putPolicy.UploadToken(u.mac)
 
-	err = u.client.Put(ctx, storage.PutRet{}, upToken, path, f, file.Size, &storage.PutExtra{})
+	err = u.client.Put(ctx, storage.PutRet{}, upToken, path, fd, file.Size, &storage.PutExtra{})
 	fileUrl = util.Join(u.domain, path)
 
 	return

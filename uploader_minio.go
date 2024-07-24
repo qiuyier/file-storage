@@ -59,8 +59,8 @@ func (u *UploaderMinio) Upload(ctx context.Context, file *multipart.FileHeader, 
 		return "", "", err
 	}
 
-	f, err := file.Open()
-	defer f.Close()
+	fd, err := file.Open()
+	defer fd.Close()
 
 	if err != nil {
 		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
@@ -69,7 +69,7 @@ func (u *UploaderMinio) Upload(ctx context.Context, file *multipart.FileHeader, 
 	contentType := util.GetContentType(util.Ext(file.Filename))
 	fileUrl = util.Join(u.domain, u.bucketName, path)
 
-	_, err = u.client.PutObject(ctx, u.bucketName, path, f, file.Size, minio.PutObjectOptions{ContentType: contentType})
+	_, err = u.client.PutObject(ctx, u.bucketName, path, fd, file.Size, minio.PutObjectOptions{ContentType: contentType})
 
 	return
 }

@@ -61,14 +61,14 @@ func (u *UploaderCos) Upload(ctx context.Context, file *multipart.FileHeader, ra
 		return "", "", err
 	}
 
-	f, err := file.Open()
-	defer f.Close()
+	fd, err := file.Open()
+	defer fd.Close()
 
 	if err != nil {
 		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
 	}
 
-	_, err = u.client.Object.Put(ctx, path, f, nil)
+	_, err = u.client.Object.Put(ctx, path, fd, nil)
 	if err != nil {
 		return "", "", err
 	}
