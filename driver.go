@@ -6,4 +6,5 @@ const (
 	AliYun  = "OSS"
 	Tencent = "COS"
 	QiNiu   = "QiNiu"
+	HuaWei  = "OBS"
 )
