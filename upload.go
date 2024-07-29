@@ -24,6 +24,7 @@ type UploadResult struct {
 
 type IUpload interface {
 	Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path, fileUrl string, err error)
+	MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error)
 	GetUploaderType() string
 }
 
@@ -38,6 +39,24 @@ func NewFileUploader() *Uploader {
 
 func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader, randomName bool) (res UploadResult, err error) {
 	path, fileUrl, err := u.uploader.Upload(ctx, file, randomName)
+	if err != nil {
+		u.logger.Errorf("upload err: %v", err)
+	}
+
+	res = UploadResult{
+		Driver:   u.uploader.GetUploaderType(),
+		FileName: file.Filename,
+		Path:     path,
+		Size:     util.FileSize(file.Size),
+		FileUrl:  fileUrl,
+		Ext:      util.Ext(file.Filename),
+	}
+
+	return
+}
+
+func (u *Uploader) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomName bool, chunkSize int) (res UploadResult, err error) {
+	path, fileUrl, err := u.uploader.MultipartUpload(ctx, file, randomName, chunkSize)
 	if err != nil {
 		u.logger.Errorf("upload err: %v", err)
 	}
