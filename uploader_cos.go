@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 type UploaderCosConfig struct {
@@ -54,9 +53,7 @@ func NewUploaderCos(config UploaderCosConfig) (uploader *UploaderCos, err error)
 }
 
 func (u *UploaderCos) Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path, fileUrl string, err error) {
-	name := util.GenName(file.Filename, randomly)
-	nowDate := time.Now().Format(time.DateOnly)
-	path = util.Join(u.path, nowDate, name)
+	path = util.GenName(u.path, file.Filename, randomly)
 
 	fd, err := file.Open()
 	defer fd.Close()
@@ -80,9 +77,7 @@ func (u *UploaderCos) GetUploaderType() string {
 
 func (u *UploaderCos) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error) {
 	// 上传路径
-	name := util.GenName(file.Filename, randomly)
-	nowDate := time.Now().Format(time.DateOnly)
-	path = util.Join(u.path, nowDate, name)
+	path = util.GenName(u.path, file.Filename, randomly)
 
 	v, _, err := u.client.Object.InitiateMultipartUpload(ctx, path, nil)
 	if err != nil {

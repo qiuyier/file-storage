@@ -7,7 +7,6 @@ import (
 	"github.com/qiniu/go-sdk/v7/storage"
 	"github.com/qiuyier/file-storage/pkg/util"
 	"mime/multipart"
-	"time"
 )
 
 type UploaderQiNiuConfig struct {
@@ -58,9 +57,7 @@ func NewUploaderQiNiu(config UploaderQiNiuConfig) (uploader *UploaderQiNiu, err 
 }
 
 func (u *UploaderQiNiu) Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path, fileUrl string, err error) {
-	name := util.GenName(file.Filename, randomly)
-	nowDate := time.Now().Format(time.DateOnly)
-	path = util.Join(u.path, nowDate, name)
+	path = util.GenName(u.path, file.Filename, randomly)
 
 	fd, err := file.Open()
 	defer fd.Close()

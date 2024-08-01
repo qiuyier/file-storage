@@ -8,7 +8,6 @@ import (
 	"github.com/minio/minio-go/v7/pkg/s3utils"
 	"github.com/qiuyier/file-storage/pkg/util"
 	"mime/multipart"
-	"time"
 )
 
 type UploaderMinioConfig struct {
@@ -51,9 +50,7 @@ func (u *UploaderMinio) Upload(ctx context.Context, file *multipart.FileHeader, 
 		return "", "", err
 	}
 
-	name := util.GenName(file.Filename, randomly)
-	nowDate := time.Now().Format(time.DateOnly)
-	path = util.Join(u.path, nowDate, name)
+	path = util.GenName(u.path, file.Filename, randomly)
 
 	if err = s3utils.CheckValidObjectName(path); err != nil {
 		return "", "", err
