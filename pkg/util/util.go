@@ -1,9 +1,12 @@
 package util
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"mime"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -106,4 +109,20 @@ func GetContentType(ext string) string {
 	} else {
 		return "application/octet-stream"
 	}
+}
+
+func ChunkFile(chunkSize, partNumber, totalChunks, fileSize int64, fd multipart.File) ([]byte, error) {
+	offset := (partNumber - 1) * int64(chunkSize)
+	size := chunkSize
+	if partNumber == totalChunks {
+		size = fileSize - offset
+	}
+
+	buf := make([]byte, size)
+	_, err := fd.ReadAt(buf, offset)
+	if err != nil && err != io.EOF {
+		return nil, errors.New("Error reading file chunk: " + err.Error())
+	}
+
+	return buf, nil
 }

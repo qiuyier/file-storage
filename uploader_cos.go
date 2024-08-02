@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/qiuyier/file-storage/pkg/util"
 	"github.com/tencentyun/cos-go-sdk-v5"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -105,20 +104,17 @@ func (u *UploaderCos) MultipartUpload(ctx context.Context, file *multipart.FileH
 	opt := &cos.CompleteMultipartUploadOptions{}
 	for i := int64(1); i <= totalChunks; i++ {
 		partNumber := int(i)
-		offset := (i - 1) * int64(chunkSize)
-		size := int64(chunkSize)
-		if i == totalChunks {
-			size = file.Size - offset
-		}
 
-		buf := make([]byte, size)
-		_, err := fd.ReadAt(buf, offset)
-		if err != nil && err != io.EOF {
+		// 文件切片
+		buf, err := util.ChunkFile(int64(chunkSize), i, totalChunks, file.Size, fd)
+		if err != nil {
 			return "", "", errors.New("Error reading file chunk: " + err.Error())
 		}
 
 		resp, err := u.client.Object.UploadPart(ctx, path, uploadId, partNumber, strings.NewReader(string(buf)), nil)
 		if err != nil {
+			// 报错就终止上传
+			_, _ = u.client.Object.AbortMultipartUpload(ctx, path, uploadId)
 			return "", "", errors.New("Error uploading part:" + err.Error())
 		}
 
