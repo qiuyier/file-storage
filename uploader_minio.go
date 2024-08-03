@@ -74,3 +74,7 @@ func (u *UploaderMinio) Upload(ctx context.Context, file *multipart.FileHeader, 
 func (u *UploaderMinio) GetUploaderType() string {
 	return Minio
 }
+
+func (u *UploaderMinio) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error) {
+	return "", "", errors.New("minio driver does not support multipart upload")
+}

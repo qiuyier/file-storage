@@ -20,7 +20,7 @@ type UploaderQiNiuConfig struct {
 }
 
 type UploaderQiNiu struct {
-	client    *storage.FormUploader
+	client    *storage.ResumeUploaderV2
 	putPolicy storage.PutPolicy
 	mac       *auth.Credentials
 	bucket    string
@@ -40,7 +40,7 @@ func NewUploaderQiNiu(config UploaderQiNiuConfig) (uploader *UploaderQiNiu, err 
 		return
 	}
 
-	client := storage.NewFormUploader(&cfg)
+	client := storage.NewResumeUploaderV2(&cfg)
 
 	uploader = &UploaderQiNiu{
 		client: client,
@@ -68,7 +68,7 @@ func (u *UploaderQiNiu) Upload(ctx context.Context, file *multipart.FileHeader, 
 
 	upToken := u.putPolicy.UploadToken(u.mac)
 
-	err = u.client.Put(ctx, storage.PutRet{}, upToken, path, fd, file.Size, &storage.PutExtra{})
+	err = u.client.Put(ctx, storage.PutRet{}, upToken, path, fd, file.Size, &storage.RputV2Extra{})
 	fileUrl = util.Join(u.domain, path)
 
 	return
@@ -76,4 +76,24 @@ func (u *UploaderQiNiu) Upload(ctx context.Context, file *multipart.FileHeader, 
 
 func (u *UploaderQiNiu) GetUploaderType() string {
 	return QiNiu
+}
+
+func (u *UploaderQiNiu) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error) {
+	path = util.GenName(u.path, file.Filename, randomly)
+
+	fd, err := file.Open()
+	defer fd.Close()
+
+	if err != nil {
+		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
+	}
+
+	upToken := u.putPolicy.UploadToken(u.mac)
+
+	err = u.client.Put(ctx, storage.PutRet{}, upToken, path, fd, file.Size, &storage.RputV2Extra{
+		PartSize: int64(chunkSize * 1024 * 1024),
+	})
+	fileUrl = util.Join(u.domain, path)
+
+	return
 }
