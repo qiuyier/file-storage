@@ -6,7 +6,6 @@ import (
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"github.com/qiuyier/file-storage/pkg/util"
 	"mime/multipart"
-	"strings"
 )
 
 type UploaderObsConfig struct {
@@ -94,28 +93,21 @@ func (u *UploaderObs) MultipartUpload(ctx context.Context, file *multipart.FileH
 	uploadId := outputInit.UploadId
 
 	// 计算分块大小和分块数量
-	if chunkSize < 1 {
-		return "", "", errors.New("chunk size must be greater than 1")
-	}
 	chunkSize = chunkSize * 1024 * 1024
-	totalChunks := (file.Size + int64(chunkSize) - 1) / int64(chunkSize)
+	chunks, err := util.SplitFileByPartSize(fd, file.Size, int64(chunkSize))
+	if err != nil {
+		return "", "", err
+	}
 
 	var opt []obs.Part
-	for i := int64(1); i <= totalChunks; i++ {
-		partNumber := int(i)
+	for _, chunk := range chunks {
 		inputUploadPart := &obs.UploadPartInput{}
 		inputUploadPart.Bucket = u.bucket
 		inputUploadPart.Key = path
 		inputUploadPart.UploadId = uploadId
-		inputUploadPart.PartNumber = partNumber
+		inputUploadPart.PartNumber = chunk.Number
 
-		// 文件切片
-		buf, err := util.ChunkFile(int64(chunkSize), i, totalChunks, file.Size, fd)
-		if err != nil {
-			return "", "", errors.New("Error reading file chunk: " + err.Error())
-		}
-
-		inputUploadPart.Body = strings.NewReader(string(buf))
+		inputUploadPart.Body = chunk.Buf
 		outputUploadPart, err := u.client.UploadPart(inputUploadPart)
 		if err != nil {
 			abortInput := &obs.AbortMultipartUploadInput{}
@@ -131,7 +123,7 @@ func (u *UploaderObs) MultipartUpload(ctx context.Context, file *multipart.FileH
 		}
 
 		PartETag := outputUploadPart.ETag
-		opt = append(opt, obs.Part{PartNumber: partNumber, ETag: PartETag})
+		opt = append(opt, obs.Part{PartNumber: chunk.Number, ETag: PartETag})
 	}
 
 	// 上传完成

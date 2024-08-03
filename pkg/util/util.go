@@ -29,6 +29,13 @@ var (
 	})
 )
 
+type FileChunk struct {
+	Number int   // Chunk number
+	Offset int64 // Chunk offset
+	Size   int64 // Chunk size.
+	Buf    *strings.Reader
+}
+
 // RandomlyName 生成随机字符串
 func RandomlyName(length int) string {
 	if length <= 0 {
@@ -111,18 +118,48 @@ func GetContentType(ext string) string {
 	}
 }
 
-func ChunkFile(chunkSize, partNumber, totalChunks, fileSize int64, fd multipart.File) ([]byte, error) {
-	offset := (partNumber - 1) * int64(chunkSize)
-	size := chunkSize
-	if partNumber == totalChunks {
-		size = fileSize - offset
+// SplitFileByPartSize 来自oss SplitFileByPartSize，修改用于文件流分片
+func SplitFileByPartSize(fd multipart.File, fileSize, chunkSize int64) ([]FileChunk, error) {
+	if chunkSize <= 0 {
+		return nil, errors.New("chunkSize invalid")
 	}
 
-	buf := make([]byte, size)
-	_, err := fd.ReadAt(buf, offset)
-	if err != nil && err != io.EOF {
-		return nil, errors.New("Error reading file chunk: " + err.Error())
+	var chunkN = fileSize / chunkSize
+	if chunkN >= 10000 {
+		return nil, errors.New("too many parts, please increase part size")
 	}
 
-	return buf, nil
+	var chunks []FileChunk
+	var chunk = FileChunk{}
+	for i := int64(0); i < chunkN; i++ {
+		chunk.Number = int(i + 1)
+		chunk.Offset = i * chunkSize
+		chunk.Size = chunkSize
+
+		buf := make([]byte, chunk.Size)
+		_, err := fd.ReadAt(buf, chunk.Offset)
+		if err != nil && err != io.EOF {
+			return nil, errors.New("Error reading file chunk: " + err.Error())
+		}
+		chunk.Buf = strings.NewReader(string(buf))
+
+		chunks = append(chunks, chunk)
+	}
+
+	if fileSize%chunkSize > 0 {
+		chunk.Number = len(chunks) + 1
+		chunk.Offset = int64(len(chunks)) * chunkSize
+		chunk.Size = fileSize % chunkSize
+
+		buf := make([]byte, chunk.Size)
+		_, err := fd.ReadAt(buf, chunk.Offset)
+		if err != nil && err != io.EOF {
+			return nil, errors.New("Error reading file chunk: " + err.Error())
+		}
+		chunk.Buf = strings.NewReader(string(buf))
+
+		chunks = append(chunks, chunk)
+	}
+
+	return chunks, nil
 }

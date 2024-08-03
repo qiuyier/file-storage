@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 type UploaderCosConfig struct {
@@ -94,24 +93,14 @@ func (u *UploaderCos) MultipartUpload(ctx context.Context, file *multipart.FileH
 	uploadId := v.UploadID
 
 	// 计算分块大小和分块数量
-	if chunkSize < 1 {
-		return "", "", errors.New("chunk size must be greater than 1")
-	}
 	chunkSize = chunkSize * 1024 * 1024
-	totalChunks := (file.Size + int64(chunkSize) - 1) / int64(chunkSize)
+	chunks, err := util.SplitFileByPartSize(fd, file.Size, int64(chunkSize))
 
 	// 分块上传
 	opt := &cos.CompleteMultipartUploadOptions{}
-	for i := int64(1); i <= totalChunks; i++ {
-		partNumber := int(i)
+	for _, chunk := range chunks {
 
-		// 文件切片
-		buf, err := util.ChunkFile(int64(chunkSize), i, totalChunks, file.Size, fd)
-		if err != nil {
-			return "", "", errors.New("Error reading file chunk: " + err.Error())
-		}
-
-		resp, err := u.client.Object.UploadPart(ctx, path, uploadId, partNumber, strings.NewReader(string(buf)), nil)
+		resp, err := u.client.Object.UploadPart(ctx, path, uploadId, chunk.Number, chunk.Buf, nil)
 		if err != nil {
 			// 报错就终止上传
 			_, _ = u.client.Object.AbortMultipartUpload(ctx, path, uploadId)
@@ -120,7 +109,7 @@ func (u *UploaderCos) MultipartUpload(ctx context.Context, file *multipart.FileH
 
 		PartETag := resp.Header.Get("ETag")
 		opt.Parts = append(opt.Parts, cos.Object{
-			PartNumber: partNumber, ETag: PartETag},
+			PartNumber: chunk.Number, ETag: PartETag},
 		)
 
 	}
