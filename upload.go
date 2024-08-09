@@ -24,6 +24,8 @@ type UploadResult struct {
 
 type IUpload interface {
 	Upload(ctx context.Context, file *multipart.FileHeader, randomly bool) (path, fileUrl string, err error)
+	// MultipartUpload
+	//chunkSize 单位byte
 	MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error)
 	GetUploaderType() string
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/s3utils"
 	"github.com/qiuyier/file-storage/pkg/util"
 	"mime/multipart"
+	"time"
 )
 
 type UploaderOssConfig struct {
@@ -69,4 +70,55 @@ func (u *UploaderOss) Upload(ctx context.Context, file *multipart.FileHeader, ra
 
 func (u *UploaderOss) GetUploaderType() string {
 	return AliYun
+}
+
+func (u *UploaderOss) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error) {
+	// 上传路径
+	path = util.GenName(u.path, file.Filename, randomly)
+
+	// 指定过期时间。
+	expires := time.Now().Add(time.Minute * 3)
+	// 如果需要在初始化分片时设置请求头，请参考以下示例代码。
+	options := []oss.Option{
+		oss.MetadataDirective(oss.MetaReplace),
+		oss.Expires(expires),
+	}
+
+	// 初始化一个分片上传事件。
+	v, err := u.bucket.InitiateMultipartUpload(path, options...)
+	if err != nil {
+		return "", "", err
+	}
+
+	// 获取文件信息
+	fd, err := file.Open()
+	defer fd.Close()
+
+	if err != nil {
+		return "", "", errors.New("open file " + file.Filename + ", err: " + err.Error())
+	}
+
+	chunkSize = chunkSize * 1024 * 1024
+	chunks, err := util.SplitFileByPartSize(fd, file.Size, int64(chunkSize))
+	if err != nil {
+		return "", "", err
+	}
+
+	// 上传分片。
+	var parts []oss.UploadPart
+	for _, chunk := range chunks {
+		part, err := u.bucket.UploadPart(v, chunk.Buf, chunk.Size, chunk.Number)
+		if err != nil {
+			_ = u.bucket.AbortMultipartUpload(v)
+			return "", "", err
+		}
+		parts = append(parts, part)
+
+	}
+
+	// 步骤3：完成分片上传。
+	_, _ = u.bucket.CompleteMultipartUpload(v, parts)
+	fileUrl = util.Join(u.domain, path)
+
+	return
 }
