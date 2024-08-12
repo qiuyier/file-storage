@@ -78,3 +78,16 @@ func (u *UploaderMinio) GetUploaderType() string {
 func (u *UploaderMinio) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error) {
 	return "", "", errors.New("minio driver does not support multipart upload")
 }
+
+func (u *UploaderMinio) DeleteObjects(ctx context.Context, path []string) error {
+	var err error
+
+	for _, v := range path {
+		err = u.client.RemoveObject(ctx, u.bucketName, v, minio.RemoveObjectOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

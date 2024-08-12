@@ -20,12 +20,13 @@ type UploaderQiNiuConfig struct {
 }
 
 type UploaderQiNiu struct {
-	client    *storage.ResumeUploaderV2
-	putPolicy storage.PutPolicy
-	mac       *auth.Credentials
-	bucket    string
-	path      string
-	domain    string
+	client        *storage.ResumeUploaderV2
+	bucketManager *storage.BucketManager
+	putPolicy     storage.PutPolicy
+	mac           *auth.Credentials
+	bucket        string
+	path          string
+	domain        string
 }
 
 func NewUploaderQiNiu(config UploaderQiNiuConfig) (uploader *UploaderQiNiu, err error) {
@@ -40,15 +41,19 @@ func NewUploaderQiNiu(config UploaderQiNiuConfig) (uploader *UploaderQiNiu, err 
 		return
 	}
 
+	mac := auth.New(config.AccessKeyID, config.SecretAccessKey)
+
 	client := storage.NewResumeUploaderV2(&cfg)
+	bucketManager := storage.NewBucketManager(mac, &cfg)
 
 	uploader = &UploaderQiNiu{
-		client: client,
+		client:        client,
+		bucketManager: bucketManager,
 		putPolicy: storage.PutPolicy{
 			Scope: config.BucketName,
 		},
 		bucket: config.BucketName,
-		mac:    auth.New(config.AccessKeyID, config.SecretAccessKey),
+		mac:    mac,
 		path:   config.Path,
 		domain: config.Domain,
 	}
@@ -96,4 +101,18 @@ func (u *UploaderQiNiu) MultipartUpload(ctx context.Context, file *multipart.Fil
 	fileUrl = util.Join(u.domain, path)
 
 	return
+}
+
+func (u *UploaderQiNiu) DeleteObjects(ctx context.Context, path []string) error {
+	deleteOps := make([]string, 0, len(path))
+	for _, key := range path {
+		deleteOps = append(deleteOps, storage.URIDelete(u.bucket, key))
+	}
+
+	rets, err := u.bucketManager.Batch(deleteOps)
+	if len(rets) == 0 || err != nil {
+		return err
+	}
+
+	return nil
 }

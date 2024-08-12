@@ -127,3 +127,19 @@ func (u *UploaderCos) MultipartUpload(ctx context.Context, file *multipart.FileH
 
 	return
 }
+
+func (u *UploaderCos) DeleteObjects(ctx context.Context, path []string) error {
+	var obs []cos.Object
+	for _, v := range path {
+		obs = append(obs, cos.Object{Key: v})
+	}
+
+	opt := &cos.ObjectDeleteMultiOptions{
+		Objects: obs,
+		Quiet:   true,
+	}
+
+	_, _, err := u.client.Object.DeleteMulti(ctx, opt)
+
+	return err
+}

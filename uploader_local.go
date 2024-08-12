@@ -149,3 +149,55 @@ func genName(fileName string, randomly bool) string {
 
 	return name
 }
+
+func checkIfFolderHasFiles(folderPath string) bool {
+	// 读取目录
+	d, err := os.ReadDir(folderPath)
+	if err != nil {
+		return false
+	}
+
+	// 检查是否有文件
+	if len(d) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (u *UploaderLocal) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error) {
+	return "", "", errors.New("not support multipart upload")
+}
+
+func (u *UploaderLocal) DeleteObjects(ctx context.Context, path []string) error {
+	var (
+		undeleteFile []string
+		err          error
+	)
+
+	for _, v := range path {
+		if exists(v) {
+			if isDir(v) {
+				err = os.RemoveAll(v)
+			} else {
+				err = os.Remove(v)
+
+				// 文件夹为空时删除文件夹
+				if !checkIfFolderHasFiles(dir(v)) {
+					_ = os.RemoveAll(dir(v))
+				}
+			}
+
+			if err != nil {
+				undeleteFile = append(undeleteFile, v)
+			}
+
+		}
+	}
+
+	if len(undeleteFile) > 0 {
+		err = errors.New(fmt.Sprintf("file %s not deleted", strings.Join(undeleteFile, ", ")))
+	}
+
+	return nil
+}

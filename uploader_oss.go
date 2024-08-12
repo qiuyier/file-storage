@@ -122,3 +122,9 @@ func (u *UploaderOss) MultipartUpload(ctx context.Context, file *multipart.FileH
 
 	return
 }
+
+func (u *UploaderOss) DeleteObjects(ctx context.Context, path []string) error {
+	_, err := u.bucket.DeleteObjects(path, oss.DeleteObjectsQuiet(true))
+
+	return err
+}

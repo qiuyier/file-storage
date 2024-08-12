@@ -138,3 +138,21 @@ func (u *UploaderObs) MultipartUpload(ctx context.Context, file *multipart.FileH
 
 	return
 }
+
+func (u *UploaderObs) DeleteObjects(ctx context.Context, path []string) error {
+	input := &obs.DeleteObjectsInput{}
+	// 指定存储桶名称
+	input.Bucket = u.bucket
+	// 指定删除对象
+	objects := make([]obs.ObjectToDelete, len(path))
+	for k, v := range path {
+		objects[k] = obs.ObjectToDelete{Key: v, VersionId: ""}
+	}
+
+	input.Objects = objects[:]
+	input.Quiet = true
+	// 删除对象
+	_, err := u.client.DeleteObjects(input)
+
+	return err
+}

@@ -28,6 +28,7 @@ type IUpload interface {
 	//chunkSize 单位byte
 	MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomly bool, chunkSize int) (path, fileUrl string, err error)
 	GetUploaderType() string
+	DeleteObjects(ctx context.Context, path []string) error
 }
 
 func NewFileUploader() *Uploader {
@@ -60,7 +61,7 @@ func (u *Uploader) Upload(ctx context.Context, file *multipart.FileHeader, rando
 func (u *Uploader) MultipartUpload(ctx context.Context, file *multipart.FileHeader, randomName bool, chunkSize int) (res UploadResult, err error) {
 	path, fileUrl, err := u.uploader.MultipartUpload(ctx, file, randomName, chunkSize)
 	if err != nil {
-		u.logger.Errorf("upload err: %v", err)
+		u.logger.Errorf("multipart upload err: %v", err)
 	}
 
 	res = UploadResult{
@@ -73,6 +74,15 @@ func (u *Uploader) MultipartUpload(ctx context.Context, file *multipart.FileHead
 	}
 
 	return
+}
+
+func (u *Uploader) DeleteObjects(ctx context.Context, path []string) error {
+	err := u.uploader.DeleteObjects(ctx, path)
+	if err != nil {
+		u.logger.Errorf("delete err: %v", err)
+	}
+
+	return err
 }
 
 func (u *Uploader) RegisterUploader(uploader IUpload) *Uploader {
